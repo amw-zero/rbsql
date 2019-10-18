@@ -29,8 +29,6 @@ module Rbsql
         statement = first_statement['InsertStmt']
         table = statement.dig('relation', 'RangeVar', 'relname')
 
-        puts 'getting values'
-
         columns = statement['cols'].map { |c| c.dig('ResTarget', 'name') }
         values = statement
           .dig('selectStmt', 'SelectStmt', 'valuesLists')[0]
@@ -42,7 +40,16 @@ module Rbsql
         statement = first_statement['SelectStmt']
         from = statement['fromClause'][0].dig('RangeVar', 'relname')
 
-        @tables[from]
+        results = @tables[from]
+
+        where_clause = statement['whereClause']
+        if where_clause
+          column = where_clause.dig('A_Expr', 'lexpr', 'ColumnRef', 'fields')[0].dig('String', 'str')
+          value = where_clause.dig('A_Expr', 'rexpr', 'A_Const', 'val', 'Integer', 'ival')
+          results = results.select { |r| r[column] == value }
+        end
+
+        results
       end
     end
   end
